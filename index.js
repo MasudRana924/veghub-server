@@ -31,6 +31,7 @@ async function run() {
         // user connection
         const usersCollection = database.collection('users')
         const ordersCollection = database.collection('orders')
+        const reviewsCollection = database.collection('reviews')
         const messagesCollection = database.collection('messages')
 
         // get api for all data 
@@ -39,6 +40,12 @@ async function run() {
             const product = await cursor.toArray()
             res.send(product)
 
+        })
+         app.get('/product/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const product = await productsCollections.findOne(query)
+            res.json(product)
         })
         app.get('/meats', async (req, res) => {
             const cursor = meatsCollections.find({})
@@ -72,13 +79,23 @@ async function run() {
             const result = await usersCollection.insertOne(user);
             res.json(result)
         })
+         // checked users admin or not 
+         app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            let isAdmin = false;
+            if (user?.role === 'admin') {
+                isAdmin = true;
+            }
+            res.json({ admin: isAdmin });
+        })
          // orders post 
          app.post('/orders', async (req, res) => {
             const order = req.body
             const result = await ordersCollection.insertOne(order)
             res.json(result)
         })
-       
         app.get('/myorders', async (req, res) => {
             const email = req.query.email
             const query = { email: email }
@@ -98,6 +115,16 @@ async function run() {
             const orders = await cursor.toArray()
             res.send(orders)
         })
+        app.post('/reviews', async (req, res) => {
+            const newReview = req.body
+            const result = await reviewsCollection.insertOne(newReview)
+            res.json(result)
+        })
+        app.get('/getreviews', async (req, res) => {
+            const cursor = reviewsCollection.find({})
+            const reviews = await cursor.toArray()
+            res.send(reviews)
+        })
         // message post 
         app.post('/messages', async (req, res) => {
             const message = req.body
@@ -114,36 +141,25 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.json(result);
         })
-        // checked admin or not 
-        app.get('/users/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { email: email };
-            const user = await usersCollection.findOne(query);
-            let isAdmin = false;
-            if (user?.role === 'admin') {
-                isAdmin = true;
-            }
-            res.json({ admin: isAdmin });
-        })
-
-
-
-
-        // admin 
-        app.post('/addproduct', async(req, res) => {
-            const name = req.body.name;
-             const price = req.body.price;
-            const pic = req.files.image;
-            const picData = pic.data;
-            const encodedPic = picData.toString('base64');
-            const imageBuffer = Buffer.from(encodedPic, 'base64');
-            const product = {
-                name,
-                price,
-                img: imageBuffer
-            }
-            const result = await productsCollections.insertOne(product);
-            res.json(result);  
+        // app.post('/addproduct', async(req, res) => {
+        //     const name = req.body.name;
+        //      const price = req.body.price;
+        //     const pic = req.files.image;
+        //     const picData = pic.data;
+        //     const encodedPic = picData.toString('base64');
+        //     const imageBuffer = Buffer.from(encodedPic, 'base64');
+        //     const product = {
+        //         name,
+        //         price,
+        //         img: imageBuffer
+        //     }
+        //     const result = await productsCollections.insertOne(product);
+        //     res.json(result);  
+        // })
+        app.post('/addproduct', async (req, res) => {
+            const newProduct = req.body
+            const result = await productsCollections.insertOne(newProduct)
+            res.json(result)
         })
         app.delete('/products/:id', async (req, res) => {
             const id = req.params.id
@@ -184,7 +200,6 @@ async function run() {
 
     }
     finally {
-
     }
 }
 run().catch(console.dir)
