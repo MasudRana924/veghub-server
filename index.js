@@ -1,6 +1,7 @@
 const express = require('express')
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const ObjectId = require('mongodb').ObjectId
+const fileUpload = require('express-fileupload');
 const cors = require('cors');
 require('dotenv').config()
 const app = express()
@@ -9,6 +10,8 @@ const port = process.env.PORT || 5000
 // middleware 
 app.use(cors())
 app.use(express.json())
+app.use(fileUpload());
+
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hrpwo.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
@@ -95,18 +98,12 @@ async function run() {
             const orders = await cursor.toArray()
             res.send(orders)
         })
-
-
-
-
         // message post 
         app.post('/messages', async (req, res) => {
             const message = req.body
             const result = await messagesCollection.insertOne(message)
             res.json(result)
         })
-
-
 
         // admin section 
          // make admin 
@@ -127,6 +124,61 @@ async function run() {
                 isAdmin = true;
             }
             res.json({ admin: isAdmin });
+        })
+
+
+
+
+        // admin 
+        app.post('/addproduct', async(req, res) => {
+            const name = req.body.name;
+             const price = req.body.price;
+            const pic = req.files.image;
+            const picData = pic.data;
+            const encodedPic = picData.toString('base64');
+            const imageBuffer = Buffer.from(encodedPic, 'base64');
+            const product = {
+                name,
+                price,
+                img: imageBuffer
+            }
+            const result = await productsCollections.insertOne(product);
+            res.json(result);  
+        })
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productsCollections.deleteOne(query)
+            res.json(result)
+        })
+        app.put('/updateproduct/:id',async(req,res)=>{
+            const id=req.params.id 
+            const updatedProduct=req.body
+            const filter={_id:ObjectId(id)}
+            const option={upsert:true}
+            const updateDoc={
+                $set:{
+                 name:updatedProduct.name,
+                 price:updatedProduct.price,
+                 img:updatedProduct.img,
+                }
+            }
+            const result =await productsCollections.updateOne(filter,updateDoc,true)
+            res.json(result)
+        })
+         // update orders 
+         app.put('/updateorders/:id',async(req,res)=>{
+            const id=req.params.id 
+            const updatedStatus=req.body
+            const filter={_id:ObjectId(id)}
+            const option={upsert:true}
+            const updateDoc={
+                $set:{
+                status:'Approved',  
+                }
+            }
+            const result =await ordersCollection.updateOne(filter,updateDoc,true)
+            res.json(result)
         })
        
 
